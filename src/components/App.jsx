@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 
 import { nanoid } from 'nanoid';
 
@@ -8,74 +8,52 @@ import Filter from './Filter';
 
 import { Box, MainTitle, SecondTitle } from './PhonebookStyled';
 
-export default class App extends Component {
 
-  state = {
-    contacts: [],
-    filter: '',
-  }
+export default function App() {
+  const [contacts, setContacts] = useState(() => {
+    const items = JSON.parse(localStorage.getItem("contacts"))
+    return items  ?? [];
+  });
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
-    const contacts = JSON.parse(localStorage.getItem("contacts"));
-    if (contacts?.length) {
-      this.setState({
-        contacts,
-      })
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem("contacts", JSON.stringify(contacts));
+  }, [contacts])
 
-  componentDidUpdate( _, prevState) {
-    const { contacts } = this.state;
-    if (prevState.contacts !== contacts) {
-      localStorage.setItem("contacts", JSON.stringify(contacts));
-    }
-  }
-
-  addContact = (contact) => {
-    if(this.isDuplicate(contact)) {
+  const addContact = (contact) => {
+    if(isDuplicate(contact)) {
       return alert(`${contact.name} is already in contacts`)
     }
-    this.setState((prev) => {
+
+    setContacts((prev) => {
       const newContact = {
         id: nanoid(),
         ...contact
       }
-      return {
-        contacts: [...prev.contacts, newContact]
-      }
+      return [...prev, newContact];
     })
   }
 
-  removeContact = (id) => {
-    this.setState((prev) => {
-      const newContacts = prev.contacts.filter((item) => item.id !== id);
-
-      return {
-        contacts: newContacts,
-      }
+  const removeContact = (id) => {
+    setContacts((prev) => {
+      const newContacts = prev.filter((item) => item.id !== id);
+  
+      return newContacts
     })
   }
 
-  handleChange = (e) => {
-    console.log(this);
-    const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { value } = e.target;
 
-    this.setState({
-      [name]: value,
-    })
+    setFilter(value);
   }
 
-  isDuplicate({ name }) {
-    const { contacts } = this.state;
-
+  const isDuplicate = ({ name }) => {
     const result = contacts.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
-
     return result;
   }
 
-  getFilteredContacts() {
-    const { contacts, filter } = this.state;
-
+  const getFilteredContacts = () => {
     if (!filter) {
       return contacts;
     }
@@ -90,20 +68,15 @@ export default class App extends Component {
     return filteredContacts;
   }
 
-  render() {
-    const { addContact, removeContact, handleChange } = this;
-    const { filter } = this.state;
-    const contacts = this.getFilteredContacts();
+  const filteredContacts = getFilteredContacts();
 
-    return(
-      <Box>
+  return (
+    <Box>
         <MainTitle>Phonebook</MainTitle>
         <Form onSubmit={addContact}/>
         <SecondTitle>Contacts</SecondTitle>
         <Filter filter={filter} handleChange={handleChange}/>
-        <ContactList items={contacts} removeContact={removeContact} />
-      </Box>
-    )
-  }
+        <ContactList items={filteredContacts} removeContact={removeContact} />
+    </Box>
+  )
 }
-
